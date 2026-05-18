@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mapeador de Planilhas</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <div class="grain"></div>
+    <main class="page">
+      <header class="hero">
+        <p class="eyebrow">Transferencia inteligente</p>
+        <h1>Mapeie colunas de Excel com arrasto mental zero</h1>
+        <p>
+          Envie duas planilhas, selecione as abas e monte os mapeamentos por dropdown.
+          O sistema identifica automaticamente as colunas disponiveis.
+        </p>
+      </header>
+
+      <section class="panel uploads">
+        <div class="upload-card" id="sourceCard">
+          <h2>Planilha 1 (Origem)</h2>
+          <input type="file" id="sourceFile" accept=".xlsx,.xlsm" />
+          <p class="file-name" id="sourceFileName">Nenhum arquivo enviado</p>
+          <label>Aba</label>
+          <select id="sourceSheet" disabled></select>
+          <div class="chips" id="sourceColumns"></div>
+        </div>
+
+        <div class="upload-card" id="destCard">
+          <h2>Planilha 2 (Destino)</h2>
+          <input type="file" id="destFile" accept=".xlsx,.xlsm" />
+          <p class="file-name" id="destFileName">Nenhum arquivo enviado</p>
+          <label>Aba</label>
+          <select id="destSheet" disabled></select>
+          <div class="chips" id="destColumns"></div>
+        </div>
+      </section>
+
+      <section class="panel config">
+        <div class="grid-two">
+          <label>
+            Linha inicial de origem
+            <input type="number" id="sourceStartRow" min="1" value="2" />
+          </label>
+          <label>
+            Linha inicial de destino
+            <input type="number" id="destStartRow" min="1" value="2" />
+          </label>
+        </div>
+
+        <div class="grid-two">
+          <label>
+            Separador para juntar 2 colunas
+            <input type="text" id="separator" value=" - " />
+          </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="skipEmpty" checked />
+            Ignorar linhas totalmente vazias na origem
+          </label>
+        </div>
+      </section>
+
+      <section class="panel mapping">
+        <div class="mapping-head">
+          <h2>Mapeamentos</h2>
+          <button type="button" class="ghost" id="addMappingBtn">Adicionar mapeamento</button>
+        </div>
+
+        <div id="mappingList" class="mapping-list"></div>
+
+        <p class="tip">
+          Dica: em cada mapeamento, voce pode escolher apenas "Origem 1" (copia simples)
+          ou preencher "Origem 1 + Origem 2" para combinar com separador.
+        </p>
+      </section>
+
+      <section class="actions">
+        <button type="button" class="primary" id="runBtn">Gerar planilha atualizada</button>
+        <p id="status" class="status">Envie as duas planilhas para comecar.</p>
+      </section>
+    </main>
+
+    <template id="mappingRowTemplate">
+      <div class="mapping-row">
+        <select class="source-1"></select>
+        <span class="plus">+</span>
+        <select class="source-2"></select>
+        <span class="arrow">-></span>
+        <select class="target"></select>
+        <button type="button" class="remove">Remover</button>
+      </div>
+    </template>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
