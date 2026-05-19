@@ -65,6 +65,15 @@
         </div>
       </section>
 
+      <section class="panel filters">
+        <div class="filter-head">
+          <h2>Filtros de linha (opcional)</h2>
+          <button type="button" class="ghost" id="addFilterBtn">Adicionar filtro</button>
+        </div>
+        <p class="tip">Filtros aplicados na origem. Linhas que atenderem à condição serão excluídas.</p>
+        <div id="filterList" class="filter-list"></div>
+      </section>
+
       <section class="panel mapping">
         <div class="mapping-head">
           <h2>Mapeamentos</h2>
@@ -84,6 +93,32 @@
         <p id="status" class="status">Envie as duas planilhas para comecar.</p>
       </section>
     </main>
+
+    <template id="filterRowTemplate">
+      <div class="filter-row">
+        <span class="filter-label">Coluna</span>
+        <select class="filter-column"></select>
+        <span class="filter-label">Condição</span>
+        <select class="filter-operator">
+          <option value="contains">contém (texto)</option>
+          <option value="not_contains">não contém (texto)</option>
+          <option value="equals">igual a (texto)</option>
+          <option value="not_equals">diferente de (texto)</option>
+          <option value="starts_with">começa com (texto)</option>
+          <option value="ends_with">termina com (texto)</option>
+          <option value="empty">está vazio</option>
+          <option value="not_empty">não está vazio</option>
+          <option value="equals_zero">igual a zero (0)</option>
+          <option value="not_zero">diferente de zero</option>
+          <option value="greater_than">maior que (número)</option>
+          <option value="less_than">menor que (número)</option>
+          <option value="all_in_list">lista de exclusão (todas)</option>
+        </select>
+        <span class="filter-label">Valor</span>
+        <input type="text" class="filter-value" placeholder="ex: débito" />
+        <button type="button" class="remove">Remover</button>
+      </div>
+    </template>
 
     <template id="mappingRowTemplate">
       <div class="mapping-row">

@@ -16,6 +16,9 @@ const els = {
   destStartRow: document.getElementById("destStartRow"),
   separator: document.getElementById("separator"),
   skipEmpty: document.getElementById("skipEmpty"),
+  filterList: document.getElementById("filterList"),
+  filterRowTemplate: document.getElementById("filterRowTemplate"),
+  addFilterBtn: document.getElementById("addFilterBtn"),
   mappingList: document.getElementById("mappingList"),
   mappingRowTemplate: document.getElementById("mappingRowTemplate"),
   addMappingBtn: document.getElementById("addMappingBtn"),
@@ -106,6 +109,73 @@ function fillColumnSelect(selectEl, columns, includeBlank = false, selected = ""
   if (includeBlank && !selected) {
     selectEl.value = "";
   }
+}
+
+function createFilterRow(defaults = {}) {
+  const row = els.filterRowTemplate.content.firstElementChild.cloneNode(true);
+  const column = row.querySelector(".filter-column");
+  const operator = row.querySelector(".filter-operator");
+  const value = row.querySelector(".filter-value");
+  const removeBtn = row.querySelector(".remove");
+
+  fillColumnSelect(column, state.source.columns, false, defaults.column || "");
+  if (defaults.operator) operator.value = defaults.operator;
+  if (defaults.value !== undefined) value.value = defaults.value;
+
+  function updateValueField() {
+    const op = operator.value;
+    if (op === "empty" || op === "not_empty" || op === "equals_zero" || op === "not_zero") {
+      value.disabled = true;
+      value.placeholder = "(não aplicável)";
+    } else if (op === "greater_than" || op === "less_than") {
+      value.disabled = false;
+      value.placeholder = "ex: 100";
+    } else if (op === "all_in_list") {
+      value.disabled = false;
+      value.placeholder = "ex: Cartão de Crédito, Dinheiro";
+    } else {
+      value.disabled = false;
+      value.placeholder = "ex: débito";
+    }
+  }
+  operator.addEventListener("change", updateValueField);
+  updateValueField();
+
+  removeBtn.addEventListener("click", () => row.remove());
+
+  els.filterList.appendChild(row);
+}
+
+function refreshFilterRows() {
+  const rows = Array.from(els.filterList.querySelectorAll(".filter-row")).map((row) => {
+    const column = row.querySelector(".filter-column").value;
+    const operator = row.querySelector(".filter-operator").value;
+    const value = row.querySelector(".filter-value").value;
+    return { column, operator, value };
+  });
+
+  clearElement(els.filterList);
+  rows.forEach((r) => createFilterRow(r));
+}
+
+function getFiltersPayload() {
+  const rows = Array.from(els.filterList.querySelectorAll(".filter-row"));
+  const filters = [];
+
+  rows.forEach((row) => {
+    const column = row.querySelector(".filter-column").value;
+    const operator = row.querySelector(".filter-operator").value;
+    const value = row.querySelector(".filter-value").value;
+
+    if (!column || !operator) return;
+
+    const noValueNeeded = ["empty", "not_empty", "equals_zero", "not_zero"];
+    if (!noValueNeeded.includes(operator) && value === "") return;
+
+    filters.push({ column, operator, value });
+  });
+
+  return filters;
 }
 
 function createMappingRow(defaults = {}) {
@@ -222,6 +292,7 @@ async function loadSheetColumns(kind, sheetName) {
 
   if (kind === "source") {
     renderColumnChips(els.sourceColumns, data.columns);
+    refreshFilterRows();
   } else {
     renderColumnChips(els.destColumns, data.columns);
   }
@@ -249,6 +320,7 @@ async function handleRun() {
       dest_start_row: Number(els.destStartRow.value || 2),
       separator: els.separator.value,
       skip_empty_rows: els.skipEmpty.checked,
+      filters: getFiltersPayload(),
       mappings,
     };
 
@@ -336,6 +408,7 @@ els.destSheet.addEventListener("change", async () => {
 });
 
 els.addMappingBtn.addEventListener("click", () => createMappingRow());
+els.addFilterBtn.addEventListener("click", () => createFilterRow());
 els.runBtn.addEventListener("click", handleRun);
 
 createMappingRow();

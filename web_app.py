@@ -133,6 +133,85 @@ def _last_filled_row(ws, col_letter: str, start_row: int) -> int:
     return start_row - 1
 
 
+def _to_number(value):
+    """Convert value to float, handling various formats like 0, 0.00, 0,00."""
+    if value is None:
+        return None
+    try:
+        # Handle string numbers with comma as decimal separator
+        text = str(value).strip().replace(".", "").replace(",", ".")
+        # If there are multiple dots, revert to original and try again
+        if text.count(".") > 1:
+            text = str(value).strip().replace(",", "")
+        return float(text)
+    except (ValueError, TypeError):
+        return None
+
+
+def _matches_filter(cell_value, operator, filter_value):
+    """Check if cell value matches filter condition (should be excluded)."""
+    text_value = str(cell_value).strip() if cell_value is not None else ""
+    num_value = _to_number(cell_value)
+    filter_num = _to_number(filter_value) if filter_value else None
+
+    if operator == "empty":
+        return text_value == ""
+    if operator == "not_empty":
+        return text_value != ""
+    if operator == "equals":
+        return text_value.lower() == filter_value.lower()
+    if operator == "not_equals":
+        return text_value.lower() != filter_value.lower()
+    if operator == "contains":
+        return filter_value.lower() in text_value.lower()
+    if operator == "not_contains":
+        return filter_value.lower() not in text_value.lower()
+    if operator == "starts_with":
+        return text_value.lower().startswith(filter_value.lower())
+    if operator == "ends_with":
+        return text_value.lower().endswith(filter_value.lower())
+
+    # Numeric operators
+    if operator == "equals_zero":
+        if num_value is None:
+            return False
+        return abs(num_value) < 0.0001  # Treat very small numbers as zero
+    if operator == "not_zero":
+        if num_value is None:
+            return False
+        return abs(num_value) >= 0.0001
+    if operator == "greater_than":
+        if num_value is None or filter_num is None:
+            return False
+        return num_value > filter_num
+    if operator == "less_than":
+        if num_value is None or filter_num is None:
+            return False
+        return num_value < filter_num
+
+    # List exclusion: exclude only if ALL words in cell are in the exclusion list
+    if operator == "all_in_list":
+        if not filter_value or not text_value:
+            return False
+
+        # Parse exclusion list from filter value
+        exclusion_list = [p.strip().lower() for p in filter_value.split(",") if p.strip()]
+        if not exclusion_list:
+            return False
+
+        # Parse cell values (split by comma)
+        cell_parts = [p.strip().lower() for p in text_value.split(",") if p.strip()]
+        if not cell_parts:
+            return False
+
+        # Check if ALL parts of the cell are in the exclusion list
+        # If yes, exclude the row (return True)
+        # If at least one part is NOT in the list, don't exclude (return False)
+        return all(part in exclusion_list for part in cell_parts)
+
+    return False
+
+
 def _copy_data(
     source_bytes: bytes,
     source_filename: str,
@@ -145,6 +224,7 @@ def _copy_data(
     mappings,
     separator: str,
     skip_empty_rows: bool,
+    filters=None,
 ):
     wb_source = load_workbook(
         io.BytesIO(source_bytes),
@@ -183,6 +263,19 @@ def _copy_data(
 
         if skip_empty_rows and all(_is_empty(v) for v in row_values.values()):
             continue
+
+        # Apply filters - skip row if any filter matches
+        if filters:
+            should_skip = False
+            for f in filters:
+                col = f["column"].upper()
+                op = f["operator"]
+                val = f.get("value", "")
+                if col in row_values and _matches_filter(row_values[col], op, val):
+                    should_skip = True
+                    break
+            if should_skip:
+                continue
 
         if skip_empty_rows:
             dst_row = dest_row_cursor
@@ -293,6 +386,15 @@ def transfer():
         source_cached = _get_cached_workbook(source_token)
         dest_cached = _get_cached_workbook(dest_token)
 
+        filters_raw = data.get("filters") or []
+        filters = []
+        for f in filters_raw:
+            filters.append({
+                "column": str(f.get("column") or "").strip().upper(),
+                "operator": str(f.get("operator") or "").strip(),
+                "value": str(f.get("value") or "").strip(),
+            })
+
         output, copied_rows, copied_cells = _copy_data(
             source_bytes=source_cached["content"],
             source_filename=source_cached["filename"],
@@ -305,6 +407,7 @@ def transfer():
             mappings=mappings,
             separator=separator,
             skip_empty_rows=skip_empty_rows,
+            filters=filters if filters else None,
         )
 
         base_name = dest_cached["filename"]

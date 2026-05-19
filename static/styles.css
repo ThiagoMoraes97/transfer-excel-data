@@ -172,12 +172,41 @@ label {
   height: 16px;
 }
 
-.mapping-head {
+.mapping-head,
+.filter-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
+}
+
+.filter-head h2 {
+  margin: 0;
+  font-family: "Fraunces", Georgia, serif;
+  font-size: 24px;
+}
+
+.filter-list {
+  display: grid;
+  gap: 10px;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  border: 1px dashed #d4c5d8;
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 239, 246, 0.55));
+}
+
+.filter-label {
+  font-weight: 500;
+  color: var(--ink-soft);
+  font-size: 13px;
 }
 
 .mapping-list {
@@ -298,9 +327,14 @@ button.primary:hover {
     grid-template-columns: 1fr;
   }
 
-  .mapping-row {
+  .mapping-row,
+  .filter-row {
     grid-template-columns: 1fr;
     gap: 6px;
+  }
+
+  .filter-label {
+    margin-top: 4px;
   }
 
   .plus,
