@@ -212,6 +212,16 @@ def _matches_filter(cell_value, operator, filter_value):
     return False
 
 
+def _to_negative_number(value):
+    """Convert a numeric value to its negative equivalent."""
+    if value is None:
+        return None
+    num = _to_number(value)
+    if num is not None:
+        return -abs(num)
+    return value
+
+
 def _copy_data(
     source_bytes: bytes,
     source_filename: str,
@@ -225,6 +235,7 @@ def _copy_data(
     separator: str,
     skip_empty_rows: bool,
     filters=None,
+    negative_values: bool = False,
 ):
     wb_source = load_workbook(
         io.BytesIO(source_bytes),
@@ -293,6 +304,10 @@ def _copy_data(
                 final_value = non_empty[0]
             else:
                 final_value = separator.join(str(v) for v in non_empty)
+
+            # Apply negative sign for expense documents if enabled
+            if negative_values and final_value is not None:
+                final_value = _to_negative_number(final_value)
 
             ws_dest[f"{mapping['target']}{dst_row}"].value = final_value
             copied_cells += 1
@@ -395,6 +410,8 @@ def transfer():
                 "value": str(f.get("value") or "").strip(),
             })
 
+        negative_values = bool(data.get("negative_values", False))
+
         output, copied_rows, copied_cells = _copy_data(
             source_bytes=source_cached["content"],
             source_filename=source_cached["filename"],
@@ -408,6 +425,7 @@ def transfer():
             separator=separator,
             skip_empty_rows=skip_empty_rows,
             filters=filters if filters else None,
+            negative_values=negative_values,
         )
 
         base_name = dest_cached["filename"]

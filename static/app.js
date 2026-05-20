@@ -16,6 +16,7 @@ const els = {
   destStartRow: document.getElementById("destStartRow"),
   separator: document.getElementById("separator"),
   skipEmpty: document.getElementById("skipEmpty"),
+  negativeValues: document.getElementById("negativeValues"),
   filterList: document.getElementById("filterList"),
   filterRowTemplate: document.getElementById("filterRowTemplate"),
   addFilterBtn: document.getElementById("addFilterBtn"),
@@ -320,6 +321,7 @@ async function handleRun() {
       dest_start_row: Number(els.destStartRow.value || 2),
       separator: els.separator.value,
       skip_empty_rows: els.skipEmpty.checked,
+      negative_values: els.negativeValues.checked,
       filters: getFiltersPayload(),
       mappings,
     };
