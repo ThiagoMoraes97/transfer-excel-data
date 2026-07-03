@@ -17,6 +17,7 @@ const els = {
   separator: document.getElementById("separator"),
   skipEmpty: document.getElementById("skipEmpty"),
   negativeValues: document.getElementById("negativeValues"),
+  removeCurrencySymbol: document.getElementById("removeCurrencySymbol"),
   filterList: document.getElementById("filterList"),
   filterRowTemplate: document.getElementById("filterRowTemplate"),
   addFilterBtn: document.getElementById("addFilterBtn"),
@@ -131,6 +132,12 @@ function createFilterRow(defaults = {}) {
     } else if (op === "greater_than" || op === "less_than") {
       value.disabled = false;
       value.placeholder = "ex: 100";
+    } else if (op === "date_month_is") {
+      value.disabled = false;
+      value.placeholder = "ex: 5 ou 05";
+    } else if (op === "not_in_list") {
+      value.disabled = false;
+      value.placeholder = "ex: Dinheiro, Boleto";
     } else if (op === "all_in_list") {
       value.disabled = false;
       value.placeholder = "ex: Cartão de Crédito, Dinheiro";
@@ -322,6 +329,7 @@ async function handleRun() {
       separator: els.separator.value,
       skip_empty_rows: els.skipEmpty.checked,
       negative_values: els.negativeValues.checked,
+      remove_currency_symbol: els.removeCurrencySymbol.checked,
       filters: getFiltersPayload(),
       mappings,
     };

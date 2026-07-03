@@ -1,0 +1,52 @@
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 140-370-248
+127.0.0.1 - - [01/Jul/2026 23:12:38] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:12:38] "GET /static/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:12:38] "GET /static/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:12:40] "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - - [01/Jul/2026 23:12:47] "GET / HTTP/1.1" 200 -
+C:\Users\thiag\Desktop\Projetos\transfer-excel-data\web_app.py:36: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = datetime.utcnow()
+C:\Users\thiag\Desktop\Projetos\transfer-excel-data\web_app.py:452: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "created_at": datetime.utcnow(),
+127.0.0.1 - - [01/Jul/2026 23:15:21] "POST /api/upload HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:15:25] "POST /api/sheet-columns HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:16:32] "POST /api/upload HTTP/1.1" 200 -
+ * Detected change in 'C:\\Users\\thiag\\Desktop\\Projetos\\transfer-excel-data\\tests\\test_date_transfer.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 140-370-248
+ * Detected change in 'C:\\Users\\thiag\\Desktop\\Projetos\\transfer-excel-data\\web_app.py', reloading
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 140-370-248
+127.0.0.1 - - [01/Jul/2026 23:26:01] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:26:15] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:26:41] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:26:41] "GET /static/styles.css HTTP/1.1" 304 -
+127.0.0.1 - - [01/Jul/2026 23:26:41] "GET /static/app.js HTTP/1.1" 200 -
+C:\Users\thiag\Desktop\Projetos\transfer-excel-data\web_app.py:36: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  now = datetime.utcnow()
+C:\Users\thiag\Desktop\Projetos\transfer-excel-data\web_app.py:493: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+  "created_at": datetime.utcnow(),
+127.0.0.1 - - [01/Jul/2026 23:26:46] "POST /api/upload HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:26:48] "POST /api/sheet-columns HTTP/1.1" 200 -
+127.0.0.1 - - [01/Jul/2026 23:28:15] "POST /api/upload HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:34:17] "GET / HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:34:18] "GET /static/styles.css HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:34:18] "GET /static/app.js HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:34:20] "GET /favicon.ico HTTP/1.1" 404 -
+127.0.0.1 - - [03/Jul/2026 00:36:11] "POST /api/upload HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:36:15] "POST /api/upload HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:37:27] "POST /api/upload HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:37:35] "POST /api/sheet-columns HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:42:29] "POST /api/transfer HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:47:38] "POST /api/sheet-columns HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:47:43] "POST /api/upload HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:47:46] "POST /api/sheet-columns HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 00:56:01] "POST /api/transfer HTTP/1.1" 200 -
+127.0.0.1 - - [03/Jul/2026 01:00:35] "GET / HTTP/1.1" 200 -

@@ -69,6 +69,10 @@
             <input type="checkbox" id="negativeValues" />
             Converter valores para negativo (despesas)
           </label>
+          <label class="checkbox-row">
+            <input type="checkbox" id="removeCurrencySymbol" />
+            Remover simbolo de moeda (R$) da origem
+          </label>
         </div>
       </section>
 
@@ -111,8 +115,10 @@
           <option value="not_contains">não contém (texto)</option>
           <option value="equals">igual a (texto)</option>
           <option value="not_equals">diferente de (texto)</option>
+          <option value="not_in_list">não está na lista (texto)</option>
           <option value="starts_with">começa com (texto)</option>
           <option value="ends_with">termina com (texto)</option>
+          <option value="date_month_is">mês é (data)</option>
           <option value="empty">está vazio</option>
           <option value="not_empty">não está vazio</option>
           <option value="equals_zero">igual a zero (0)</option>

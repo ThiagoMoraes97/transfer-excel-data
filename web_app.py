@@ -1,7 +1,7 @@
 import io
 import json
 import secrets
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from flask import Flask, jsonify, render_template, request, send_file
 from openpyxl import load_workbook
@@ -11,6 +11,7 @@ app = Flask(__name__)
 
 UPLOAD_CACHE = {}
 CACHE_TTL_MINUTES = 30
+HEADER_PREVIEW_ROWS = 50
 
 
 def _is_empty(value):
@@ -27,6 +28,10 @@ def _to_text(value):
     return str(value)
 
 
+def _is_header_text(value):
+    return isinstance(value, str) and value.strip() != ""
+
+
 def _cleanup_cache():
     now = datetime.utcnow()
     expired = [
@@ -38,30 +43,86 @@ def _cleanup_cache():
         UPLOAD_CACHE.pop(token, None)
 
 
+def _detect_header_row(preview_rows):
+    candidates = []
+
+    for row_index, row in preview_rows:
+        non_empty_cells = [(col_idx, value) for col_idx, value in enumerate(row, start=1) if not _is_empty(value)]
+        if not non_empty_cells:
+            continue
+
+        count = len(non_empty_cells)
+        text_count = sum(1 for _, value in non_empty_cells if _is_header_text(value))
+        candidates.append(
+            {
+                "row_index": row_index,
+                "count": count,
+                "text_ratio": text_count / count,
+            }
+        )
+
+    if not candidates:
+        return 1
+
+    max_count = max(candidate["count"] for candidate in candidates)
+    minimum_useful_count = max(2, (max_count + 1) // 2)
+    header_like_rows = [
+        candidate
+        for candidate in candidates
+        if candidate["count"] >= minimum_useful_count and candidate["text_ratio"] >= 0.5
+    ]
+
+    if header_like_rows:
+        header_like_rows.sort(key=lambda candidate: (-candidate["text_ratio"], candidate["row_index"], -candidate["count"]))
+        return header_like_rows[0]["row_index"]
+
+    candidates.sort(key=lambda candidate: (-candidate["count"], candidate["row_index"]))
+    return candidates[0]["row_index"]
+
+
 def _scan_sheet_columns(ws):
-    used = set()
-    samples = {}
+    # Some exported workbooks ship incorrect dimensions like A1:A1.
+    # Resetting lets openpyxl stream the real used range in read-only mode.
+    if hasattr(ws, "reset_dimensions"):
+        ws.reset_dimensions()
 
-    max_row = ws.max_row or 1
-    max_col = ws.max_column or 1
+    row_iter = ws.iter_rows(values_only=True)
+    preview_rows = []
 
-    if max_row == 1 and max_col == 1 and _is_empty(ws.cell(row=1, column=1).value):
+    for row_index, row in enumerate(row_iter, start=1):
+        preview_rows.append((row_index, row))
+        if row_index >= HEADER_PREVIEW_ROWS:
+            break
+
+    if not preview_rows:
         return []
 
+    header_row_index = _detect_header_row(preview_rows)
+    used = set()
     headers = {}
-    for col_idx in range(1, max_col + 1):
-        headers[col_idx] = ws.cell(row=1, column=col_idx).value
+    samples = {}
 
-    for row_index, row in enumerate(
-        ws.iter_rows(min_row=1, max_row=max_row, min_col=1, max_col=max_col, values_only=True),
-        start=1,
-    ):
+    def collect_row(row_index, row):
         for col_idx, value in enumerate(row, start=1):
             if _is_empty(value):
                 continue
+
             used.add(col_idx)
-            if row_index > 1 and col_idx not in samples:
+            if row_index == header_row_index:
+                headers[col_idx] = value
+            elif row_index > header_row_index and col_idx not in samples:
                 samples[col_idx] = value
+
+    for row_index, row in preview_rows:
+        collect_row(row_index, row)
+
+    next_row_index = len(preview_rows) + 1
+    for row in row_iter:
+        collect_row(next_row_index, row)
+        next_row_index += 1
+
+    if not used:
+        return []
 
     columns = []
     for col_idx in sorted(used):
@@ -148,6 +209,59 @@ def _to_number(value):
         return None
 
 
+def _remove_currency_symbol(value, coerce_number: bool = True):
+    if not isinstance(value, str):
+        return value
+
+    cleaned = value.replace("\xa0", " ").replace("R$", "").replace("r$", "").strip()
+    if cleaned == value:
+        return value
+
+    if coerce_number:
+        parsed = _to_number(cleaned)
+        if parsed is not None:
+            return parsed
+
+    return cleaned
+
+
+def _split_filter_list(filter_value):
+    return [part.strip().lower() for part in str(filter_value or "").split(",") if part.strip()]
+
+
+def _to_month_number(value):
+    parsed = _to_number(value)
+    if parsed is None:
+        return None
+
+    month = int(parsed)
+    if month < 1 or month > 12 or month != parsed:
+        return None
+
+    return month
+
+
+def _date_month(value):
+    if isinstance(value, datetime):
+        return value.month
+    if isinstance(value, date):
+        return value.month
+    if value is None:
+        return None
+
+    text_value = str(value).strip()
+    if not text_value:
+        return None
+
+    for date_format in ("%d/%m/%Y", "%d-%m-%Y", "%d/%m/%y", "%d-%m-%y", "%Y-%m-%d", "%Y-%m-%d %H:%M:%S"):
+        try:
+            return datetime.strptime(text_value, date_format).month
+        except ValueError:
+            pass
+
+    return None
+
+
 def _matches_filter(cell_value, operator, filter_value):
     """Check if cell value matches filter condition (should be excluded)."""
     text_value = str(cell_value).strip() if cell_value is not None else ""
@@ -166,10 +280,23 @@ def _matches_filter(cell_value, operator, filter_value):
         return filter_value.lower() in text_value.lower()
     if operator == "not_contains":
         return filter_value.lower() not in text_value.lower()
+    if operator == "not_in_list":
+        allowed_values = _split_filter_list(filter_value)
+        if not allowed_values:
+            return False
+        return text_value.lower() not in allowed_values
     if operator == "starts_with":
         return text_value.lower().startswith(filter_value.lower())
     if operator == "ends_with":
         return text_value.lower().endswith(filter_value.lower())
+
+    # Date operators. Filters remove matching rows, so this operator removes
+    # rows whose date month is different from the selected month.
+    if operator == "date_month_is":
+        selected_month = _to_month_number(filter_value)
+        if selected_month is None:
+            return False
+        return _date_month(cell_value) != selected_month
 
     # Numeric operators
     if operator == "equals_zero":
@@ -195,7 +322,7 @@ def _matches_filter(cell_value, operator, filter_value):
             return False
 
         # Parse exclusion list from filter value
-        exclusion_list = [p.strip().lower() for p in filter_value.split(",") if p.strip()]
+        exclusion_list = _split_filter_list(filter_value)
         if not exclusion_list:
             return False
 
@@ -222,6 +349,13 @@ def _to_negative_number(value):
     return value
 
 
+def _preserve_source_date_format(source_cell, dest_cell):
+    if source_cell is None or dest_cell is None:
+        return
+    if source_cell.is_date and source_cell.number_format:
+        dest_cell.number_format = source_cell.number_format
+
+
 def _copy_data(
     source_bytes: bytes,
     source_filename: str,
@@ -236,6 +370,7 @@ def _copy_data(
     skip_empty_rows: bool,
     filters=None,
     negative_values: bool = False,
+    remove_currency_symbol: bool = False,
 ):
     wb_source = load_workbook(
         io.BytesIO(source_bytes),
@@ -255,7 +390,8 @@ def _copy_data(
     ws_source = wb_source[source_sheet]
     ws_dest = wb_dest[dest_sheet]
 
-    all_source_cols = sorted({col for m in mappings for col in m["sources"]})
+    filter_cols = {f.get("column", "").upper() for f in filters or [] if f.get("column")}
+    all_source_cols = sorted({col for m in mappings for col in m["sources"]} | filter_cols)
     last_rows = [_last_filled_row(ws_source, col, source_start_row) for col in all_source_cols]
     last_row = max(last_rows) if last_rows else source_start_row - 1
 
@@ -270,7 +406,8 @@ def _copy_data(
     copied_cells = 0
 
     for src_row in range(source_start_row, last_row + 1):
-        row_values = {col: ws_source[f"{col}{src_row}"].value for col in all_source_cols}
+        row_cells = {col: ws_source[f"{col}{src_row}"] for col in all_source_cols}
+        row_values = {col: row_cells[col].value for col in all_source_cols}
 
         if skip_empty_rows and all(_is_empty(v) for v in row_values.values()):
             continue
@@ -301,15 +438,26 @@ def _copy_data(
             if not non_empty:
                 final_value = None
             elif len(non_empty) == 1:
-                final_value = non_empty[0]
+                final_value = (
+                    _remove_currency_symbol(non_empty[0], coerce_number=True)
+                    if remove_currency_symbol
+                    else non_empty[0]
+                )
             else:
-                final_value = separator.join(str(v) for v in non_empty)
+                prepared_values = [
+                    _remove_currency_symbol(value, coerce_number=False) if remove_currency_symbol else value
+                    for value in non_empty
+                ]
+                final_value = separator.join(str(v) for v in prepared_values)
 
             # Apply negative sign for expense documents if enabled
             if negative_values and final_value is not None:
                 final_value = _to_negative_number(final_value)
 
-            ws_dest[f"{mapping['target']}{dst_row}"].value = final_value
+            dest_cell = ws_dest[f"{mapping['target']}{dst_row}"]
+            dest_cell.value = final_value
+            if len(mapping["sources"]) == 1:
+                _preserve_source_date_format(row_cells[mapping["sources"][0]], dest_cell)
             copied_cells += 1
 
         copied_rows += 1
@@ -411,6 +559,7 @@ def transfer():
             })
 
         negative_values = bool(data.get("negative_values", False))
+        remove_currency_symbol = bool(data.get("remove_currency_symbol", False))
 
         output, copied_rows, copied_cells = _copy_data(
             source_bytes=source_cached["content"],
@@ -426,6 +575,7 @@ def transfer():
             skip_empty_rows=skip_empty_rows,
             filters=filters if filters else None,
             negative_values=negative_values,
+            remove_currency_symbol=remove_currency_symbol,
         )
 
         base_name = dest_cached["filename"]

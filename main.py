@@ -84,6 +84,13 @@ def combinar_valores(valores, separador: str):
     return separador.join(str(v) for v in preenchidos)
 
 
+def preservar_formato_data(origem_celula, destino_celula):
+    if origem_celula is None or destino_celula is None:
+        return
+    if origem_celula.is_date and origem_celula.number_format:
+        destino_celula.number_format = origem_celula.number_format
+
+
 def copiar_colunas(
     arquivo_origem: str,
     arquivo_destino: str,
@@ -118,9 +125,11 @@ def copiar_colunas(
     linha_destino_atual = linha_destino_inicial
 
     for linha_origem in range(linha_origem_inicial, ultima + 1):
+        celulas_origem = {}
         valores = {}
         for coluna_origem in colunas_origem:
-            valores[coluna_origem] = ws_origem[f"{coluna_origem}{linha_origem}"].value
+            celulas_origem[coluna_origem] = ws_origem[f"{coluna_origem}{linha_origem}"]
+            valores[coluna_origem] = celulas_origem[coluna_origem].value
 
         if apenas_preenchidas:
             if all(valor_vazio(v) for v in valores.values()):
@@ -133,7 +142,10 @@ def copiar_colunas(
         for colunas_origem_map, coluna_destino in mapeamentos:
             # Apenas o valor e alterado. Formatos da planilha permanecem.
             valor_final = combinar_valores([valores[c] for c in colunas_origem_map], separador)
-            ws_destino[f"{coluna_destino}{destino_linha}"].value = valor_final
+            celula_destino = ws_destino[f"{coluna_destino}{destino_linha}"]
+            celula_destino.value = valor_final
+            if len(colunas_origem_map) == 1:
+                preservar_formato_data(celulas_origem[colunas_origem_map[0]], celula_destino)
             celulas_copiadas += 1
         linhas_copiadas += 1
 
