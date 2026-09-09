@@ -2,6 +2,7 @@ import io
 import json
 import secrets
 from datetime import date, datetime, timedelta
+from decimal import Decimal
 
 from flask import Flask, jsonify, render_template, request, send_file
 from openpyxl import load_workbook
@@ -198,12 +199,24 @@ def _to_number(value):
     """Convert value to float, handling various formats like 0, 0.00, 0,00."""
     if value is None:
         return None
+    if isinstance(value, (int, float, Decimal)) and not isinstance(value, bool):
+        return float(value)
+
+    text = str(value).strip()
+    if not text:
+        return None
+
     try:
-        # Handle string numbers with comma as decimal separator
-        text = str(value).strip().replace(".", "").replace(",", ".")
-        # If there are multiple dots, revert to original and try again
-        if text.count(".") > 1:
-            text = str(value).strip().replace(",", "")
+        if "," in text and "." in text:
+            if text.rfind(",") > text.rfind("."):
+                text = text.replace(".", "").replace(",", ".")
+            else:
+                text = text.replace(",", "")
+        elif "," in text:
+            text = text.replace(".", "").replace(",", ".")
+        elif text.count(".") > 1:
+            text = text.replace(".", "")
+
         return float(text)
     except (ValueError, TypeError):
         return None

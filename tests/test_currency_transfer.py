@@ -66,6 +66,31 @@ class CurrencyTransferTests(unittest.TestCase):
         wb_result = load_workbook(output)
         self.assertEqual(50.0, wb_result["Destino"]["A2"].value)
 
+    def test_negative_values_preserve_excel_numeric_decimals(self):
+        source_bytes = _workbook_bytes("Origem", [["Valor"], [500.0], [177.2]])
+        dest_bytes = _workbook_bytes("Destino", [["Valor"]])
+
+        output, copied_rows, copied_cells = _copy_data(
+            source_bytes=source_bytes,
+            source_filename="origem.xlsx",
+            source_sheet="Origem",
+            source_start_row=2,
+            dest_bytes=dest_bytes,
+            dest_filename="destino.xlsx",
+            dest_sheet="Destino",
+            dest_start_row=2,
+            mappings=[{"sources": ["A"], "target": "A"}],
+            separator=" - ",
+            skip_empty_rows=True,
+            negative_values=True,
+        )
+
+        wb_result = load_workbook(output)
+        self.assertEqual(-500.0, wb_result["Destino"]["A2"].value)
+        self.assertEqual(-177.2, wb_result["Destino"]["A3"].value)
+        self.assertEqual(2, copied_rows)
+        self.assertEqual(2, copied_cells)
+
 
 if __name__ == "__main__":
     unittest.main()
